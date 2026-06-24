@@ -27,6 +27,15 @@ const JWT_SECRET = process.env.JWT_SECRET || 'wk-secret-compliance-key-2026';
 app.use(cors());
 app.use(express.json());
 
+// Root health check endpoint
+app.get('/', (req, res) => {
+  res.json({ 
+    status: 'healthy', 
+    service: 'Wolters Kluwer VeriSpec Backend API',
+    timestamp: new Date()
+  });
+});
+
 // Setup file uploads directory
 const uploadDir = path.join(__dirname, 'uploads');
 const testDir = path.join(__dirname, 'generated_tests');
