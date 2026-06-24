@@ -1,0 +1,25 @@
+SYSTEM REQUIREMENTS SPECIFICATION (SRS)
+Project: E-Commerce Storefront & Payment Gateway
+Version: 1.0.0
+Author: QA Automation Team
+
+---------------------------------------------------------
+SECTION 1: User Cart & Checkout
+
+REQ-1: The user shall be able to add inventory items to their shopping cart.
+REQ-2: During checkout, the checkout calculator must compute the tax and shipping costs dynamically.
+REQ-3: Cart contents and totals shall persist across browser page refreshes.
+
+---------------------------------------------------------
+SECTION 2: Stripe Payment Gateway Integration
+
+REQ-4: The payment module shall connect to the Stripe API for card validation.
+REQ-5: Users must enter a valid 16-digit credit card, expiration date, and CVV code to execute payments.
+REQ-6: Any declined transactions must trigger a clear "Payment Failed" error notification.
+
+---------------------------------------------------------
+SECTION 3: Order History & Receipts
+
+REQ-7: The order confirmation system shall generate a unique order reference ID upon successful checkout.
+REQ-8: The system shall email a PDF invoice receipt to the buyer's registered email address.
+REQ-9: Order records must log the timestamp, product quantities, and payment confirmation tokens.
