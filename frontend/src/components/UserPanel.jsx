@@ -3,6 +3,7 @@ import {
   Upload, FileText, CheckCircle2, AlertCircle, 
   Trash2, Send, HelpCircle, FileCode, Check 
 } from 'lucide-react';
+import { API_BASE_URL } from '../config.js';
 
 export default function UserPanel({ 
   documents, 
@@ -52,7 +53,7 @@ export default function UserPanel({
     formData.append('srsFile', file);
 
     try {
-      const res = await fetch('/api/documents/upload', {
+      const res = await fetch(`${API_BASE_URL}/api/documents/upload`, {
         method: 'POST',
         body: formData
       });
@@ -82,7 +83,7 @@ export default function UserPanel({
     setUploadError('');
     
     try {
-      const res = await fetch('/api/documents/upload', {
+      const res = await fetch(`${API_BASE_URL}/api/documents/upload`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -114,7 +115,7 @@ export default function UserPanel({
     e.stopPropagation();
     if (!confirm('Are you sure you want to delete this document and its test cases?')) return;
     try {
-      const res = await fetch(`/api/documents/${id}`, { method: 'DELETE' });
+      const res = await fetch(`${API_BASE_URL}/api/documents/${id}`, { method: 'DELETE' });
       if (res.ok) {
         onUploadSuccess();
       }

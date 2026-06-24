@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import UserPanel from './components/UserPanel.jsx';
 import AdminPanel from './components/AdminPanel.jsx';
+import { API_BASE_URL } from './config.js';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('user'); // 'user' | 'admin'
@@ -29,7 +30,7 @@ export default function App() {
   // Fetch documents list on load
   const fetchDocuments = async () => {
     try {
-      const res = await fetch('/api/documents');
+      const res = await fetch(`${API_BASE_URL}/api/documents`);
       if (res.ok) {
         const data = await res.json();
         setDocuments(data);
@@ -46,7 +47,7 @@ export default function App() {
 
   const fetchDocumentDetails = async (docId) => {
     try {
-      const res = await fetch(`/api/documents/${docId}`);
+      const res = await fetch(`${API_BASE_URL}/api/documents/${docId}`);
       if (res.ok) {
         const data = await res.json();
         setSelectedDoc(data.doc);
@@ -80,7 +81,7 @@ export default function App() {
     e.preventDefault();
     setLoginError('');
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: loginUsername, password: loginPassword })

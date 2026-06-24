@@ -4,6 +4,7 @@ import {
   Copy, CheckCircle, RefreshCw, Eye, FileCode, AlertTriangle,
   CheckSquare, Bug, Layers, Clipboard, AlertCircle
 } from 'lucide-react';
+import { API_BASE_URL } from '../config.js';
 
 export default function AdminPanel({ 
   token,
@@ -93,7 +94,7 @@ export default function AdminPanel({
   const fetchFrameworkCode = async () => {
     setFrameworkLoading(true);
     try {
-      const res = await fetch(`/api/documents/${selectedDoc.id}/compile-framework?framework=${selectedFramework}`);
+      const res = await fetch(`${API_BASE_URL}/api/documents/${selectedDoc.id}/compile-framework?framework=${selectedFramework}`);
       if (res.ok) {
         const data = await res.json();
         setFrameworkCode(data.scriptCode);
@@ -109,7 +110,7 @@ export default function AdminPanel({
   const handleApprove = async () => {
     if (!selectedDoc) return;
     try {
-      const res = await fetch(`/api/documents/${selectedDoc.id}/approve`, {
+      const res = await fetch(`${API_BASE_URL}/api/documents/${selectedDoc.id}/approve`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -130,7 +131,7 @@ export default function AdminPanel({
     if (!selectedDoc) return;
     if (!confirm('Reject this document? It will be flagged for revisions.')) return;
     try {
-      const res = await fetch(`/api/documents/${selectedDoc.id}/reject`, {
+      const res = await fetch(`${API_BASE_URL}/api/documents/${selectedDoc.id}/reject`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -154,7 +155,7 @@ export default function AdminPanel({
 
   const saveEdit = async (id) => {
     try {
-      const res = await fetch(`/api/test-cases/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/test-cases/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -216,7 +217,7 @@ export default function AdminPanel({
     const status = failedCount > 0 ? 'failed' : 'passed';
 
     try {
-      const res = await fetch('/api/test-runs', {
+      const res = await fetch(`${API_BASE_URL}/api/test-runs`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -248,7 +249,7 @@ export default function AdminPanel({
   const handleLogDefectSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch('/api/defects', {
+      const res = await fetch(`${API_BASE_URL}/api/defects`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -273,7 +274,7 @@ export default function AdminPanel({
 
   const handleResolveDefect = async (id) => {
     try {
-      const res = await fetch(`/api/defects/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/defects/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'Resolved' })
@@ -295,7 +296,7 @@ export default function AdminPanel({
     setBugTicket(null);
     setShowVisualDiff(false);
 
-    const eventSource = new EventSource(`/api/documents/${selectedDoc.id}/run-script`);
+    const eventSource = new EventSource(`${API_BASE_URL}/api/documents/${selectedDoc.id}/run-script`);
     
     eventSource.onmessage = (event) => {
       const data = JSON.parse(event.data);
