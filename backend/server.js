@@ -7,9 +7,14 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import db, { initDB } from './db.js';
+import { 
+  connectDB, User, Document, TestCase, Script, Defect, TestRun 
+} from './db.js';
 import { generateTestCasesFromSRS } from './services/ai.js';
-import { generatePlaywrightScript, simulatePlaywrightExecution, generateCypressScript, generateSeleniumScript } from './services/generator.js';
+import { 
+  generatePlaywrightScript, simulatePlaywrightExecution, 
+  generateCypressScript, generateSeleniumScript 
+} from './services/generator.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -39,8 +44,8 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// Initialize database
-initDB().catch(console.error);
+// Initialize database connection
+connectDB().catch(console.error);
 
 // ----------------------------------------------------
 // Authentication Routes
@@ -53,16 +58,13 @@ app.post('/api/auth/register', async (req, res) => {
     return res.status(400).json({ error: 'Username and password are required' });
   }
   try {
-    const existing = await db.get('SELECT * FROM users WHERE username = ?', [username]);
+    const existing = await User.findOne({ username });
     if (existing) {
       return res.status(400).json({ error: 'Username already exists' });
     }
     const hashedPassword = await bcrypt.hash(password, 10);
     const userRole = role === 'admin' ? 'admin' : 'user';
-    await db.run(
-      'INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
-      [username, hashedPassword, userRole]
-    );
+    await new User({ username, password: hashedPassword, role: userRole }).save();
     res.json({ message: 'User registered successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -76,7 +78,7 @@ app.post('/api/auth/login', async (req, res) => {
     return res.status(400).json({ error: 'Username and password are required' });
   }
   try {
-    const user = await db.get('SELECT * FROM users WHERE username = ?', [username]);
+    const user = await User.findOne({ username });
     if (!user) {
       return res.status(401).json({ error: 'Invalid username or password' });
     }
@@ -123,7 +125,7 @@ const requireAdmin = (req, res, next) => {
 // List all documents
 app.get('/api/documents', async (req, res) => {
   try {
-    const docs = await db.query('SELECT * FROM documents ORDER BY created_at DESC');
+    const docs = await Document.find().sort({ created_at: -1 });
     res.json(docs);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -133,90 +135,15 @@ app.get('/api/documents', async (req, res) => {
 // Single document with its test cases, scripts, defects, and run history
 app.get('/api/documents/:id', async (req, res) => {
   try {
-    const doc = await db.get('SELECT * FROM documents WHERE id = ?', [req.params.id]);
+    const doc = await Document.findById(req.params.id);
     if (!doc) return res.status(404).json({ error: 'Document not found' });
 
-    const testCases = await db.query('SELECT * FROM test_cases WHERE document_id = ?', [req.params.id]);
-    const script = await db.get('SELECT * FROM scripts WHERE document_id = ?', [req.params.id]);
-    const defects = await db.query('SELECT * FROM defects WHERE document_id = ? ORDER BY created_at DESC', [req.params.id]);
-    const testRuns = await db.query('SELECT * FROM test_runs WHERE document_id = ? ORDER BY created_at DESC', [req.params.id]);
+    const testCases = await TestCase.find({ document_id: req.params.id });
+    const script = await Script.findOne({ document_id: req.params.id });
+    const defects = await Defect.find({ document_id: req.params.id }).sort({ created_at: -1 });
+    const testRuns = await TestRun.find({ document_id: req.params.id }).sort({ created_at: -1 });
 
     res.json({ doc, testCases, script, defects, testRuns });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Create a new defect ticket
-app.post('/api/defects', async (req, res) => {
-  const { document_id, test_case_id, title, description, severity } = req.body;
-  if (!document_id || !test_case_id || !title || !description) {
-    return res.status(400).json({ error: 'document_id, test_case_id, title, and description are required' });
-  }
-  try {
-    const result = await db.run(
-      'INSERT INTO defects (document_id, test_case_id, title, description, severity, status) VALUES (?, ?, ?, ?, ?, ?)',
-      [document_id, test_case_id, title, description, severity || 'Medium', 'Open']
-    );
-    res.json({ message: 'Defect logged successfully', id: result.id });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Update defect status (resolve bug)
-app.put('/api/defects/:id', async (req, res) => {
-  const { status } = req.body;
-  if (!status) return res.status(400).json({ error: 'Status is required' });
-  try {
-    await db.run('UPDATE defects SET status = ? WHERE id = ?', [status, req.params.id]);
-    res.json({ message: 'Defect status updated successfully' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Submit a new manual or automated test run execution log
-app.post('/api/test-runs', async (req, res) => {
-  const { document_id, run_type, status, passed_count, failed_count } = req.body;
-  if (!document_id || !run_type || !status) {
-    return res.status(400).json({ error: 'document_id, run_type, and status are required' });
-  }
-  try {
-    const result = await db.run(
-      'INSERT INTO test_runs (document_id, run_type, status, passed_count, failed_count) VALUES (?, ?, ?, ?, ?)',
-      [document_id, run_type, status, passed_count || 0, failed_count || 0]
-    );
-    res.json({ message: 'Test execution run saved', id: result.id });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Compile dynamic automation scripts based on framework parameter
-app.get('/api/documents/:id/compile-framework', async (req, res) => {
-  const { framework } = req.query; // 'playwright' | 'cypress' | 'selenium'
-  try {
-    const doc = await db.get('SELECT * FROM documents WHERE id = ?', [req.params.id]);
-    if (!doc) return res.status(404).json({ error: 'Document not found' });
-
-    const testCases = await db.query('SELECT * FROM test_cases WHERE document_id = ?', [req.params.id]);
-    
-    let scriptCode = '';
-    let language = '';
-
-    if (framework === 'cypress') {
-      scriptCode = generateCypressScript(doc.filename, testCases);
-      language = 'JavaScript (Cypress)';
-    } else if (framework === 'selenium') {
-      scriptCode = generateSeleniumScript(doc.filename, testCases);
-      language = 'Java (Selenium JUnit)';
-    } else {
-      scriptCode = generatePlaywrightScript(doc.filename, testCases);
-      language = 'JavaScript (Playwright)';
-    }
-
-    res.json({ scriptCode, language, framework });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -240,26 +167,28 @@ app.post('/api/documents/upload', upload.single('srsFile'), async (req, res) => 
       content = req.body.textInput;
     }
 
-    // Save document to SQLite
-    const docResult = await db.run(
-      'INSERT INTO documents (filename, content, status) VALUES (?, ?, ?)',
-      [filename, content, 'processing']
-    );
-    const documentId = docResult.id;
+    // Save document to MongoDB
+    const doc = await new Document({ filename, content, status: 'processing' }).save();
+    const documentId = doc._id;
 
-    // Generate Test Cases (Mock AI parsing)
+    // Generate Test Cases (Gemini/Mock parsing)
     const testCases = await generateTestCasesFromSRS(filename, content);
 
     // Save test cases to database
     for (const tc of testCases) {
-      await db.run(
-        'INSERT INTO test_cases (document_id, section, title, steps, expected, status) VALUES (?, ?, ?, ?, ?, ?)',
-        [documentId, tc.section, tc.title, tc.steps, tc.expected, 'draft']
-      );
+      await new TestCase({
+        document_id: documentId,
+        section: tc.section,
+        title: tc.title,
+        steps: tc.steps,
+        expected: tc.expected,
+        status: 'draft'
+      }).save();
     }
 
     // Update document status
-    await db.run('UPDATE documents SET status = ? WHERE id = ?', ['pending_approval', documentId]);
+    doc.status = 'pending_approval';
+    await doc.save();
 
     res.json({
       message: 'SRS parsed and test cases generated successfully',
@@ -277,10 +206,9 @@ app.put('/api/test-cases/:id', async (req, res) => {
     return res.status(400).json({ error: 'Title, steps, and expected fields are required' });
   }
   try {
-    await db.run(
-      'UPDATE test_cases SET title = ?, steps = ?, expected = ?, section = ? WHERE id = ?',
-      [title, steps, expected, section || 'General', req.params.id]
-    );
+    await TestCase.findByIdAndUpdate(req.params.id, {
+      title, steps, expected, section: section || 'General'
+    });
     res.json({ message: 'Test case updated successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -290,34 +218,28 @@ app.put('/api/test-cases/:id', async (req, res) => {
 // Approve a document: generates Playwright Script code
 app.post('/api/documents/:id/approve', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const doc = await db.get('SELECT * FROM documents WHERE id = ?', [req.params.id]);
+    const doc = await Document.findById(req.params.id);
     if (!doc) return res.status(404).json({ error: 'Document not found' });
 
-    const testCases = await db.query('SELECT * FROM test_cases WHERE document_id = ?', [req.params.id]);
+    const testCases = await TestCase.find({ document_id: req.params.id });
     
     // Generate Playwright test script
     const scriptCode = generatePlaywrightScript(doc.filename, testCases);
 
-    // Write to a local test file
+    // Write to a local test file for simulation run support
     const testFilePath = path.join(testDir, `document_${doc.id}.spec.js`);
     fs.writeFileSync(testFilePath, scriptCode, 'utf8');
 
-    // Save script reference in DB
-    const existingScript = await db.get('SELECT * FROM scripts WHERE document_id = ?', [doc.id]);
-    if (existingScript) {
-      await db.run(
-        'UPDATE scripts SET script_code = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE document_id = ?',
-        [scriptCode, 'approved', doc.id]
-      );
-    } else {
-      await db.run(
-        'INSERT INTO scripts (document_id, script_code, status) VALUES (?, ?, ?)',
-        [doc.id, scriptCode, 'approved']
-      );
-    }
+    // Save or update script reference in DB
+    await Script.findOneAndUpdate(
+      { document_id: doc._id },
+      { script_code: scriptCode, status: 'approved', updated_at: new Date() },
+      { upsert: true, new: true }
+    );
 
     // Set document status
-    await db.run('UPDATE documents SET status = ? WHERE id = ?', ['approved', doc.id]);
+    doc.status = 'approved';
+    await doc.save();
 
     res.json({
       message: 'SRS approved and Playwright script generated',
@@ -331,7 +253,7 @@ app.post('/api/documents/:id/approve', authenticateToken, requireAdmin, async (r
 // Reject a document
 app.post('/api/documents/:id/reject', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    await db.run('UPDATE documents SET status = ? WHERE id = ?', ['rejected', req.params.id]);
+    await Document.findByIdAndUpdate(req.params.id, { status: 'rejected' });
     res.json({ message: 'SRS document rejected' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -342,12 +264,12 @@ app.post('/api/documents/:id/reject', authenticateToken, requireAdmin, async (re
 app.get('/api/documents/:id/run-script', async (req, res) => {
   const documentId = req.params.id;
   try {
-    const script = await db.get('SELECT * FROM scripts WHERE document_id = ?', [documentId]);
+    const script = await Script.findOne({ document_id: documentId });
     if (!script) {
       return res.status(404).json({ error: 'No approved script found for this document' });
     }
 
-    // Set headers for Server-Sent Events (SSE) to enable real-time streaming to the UI
+    // Set headers for Server-Sent Events (SSE) to enable real-time streaming
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
@@ -359,13 +281,23 @@ app.get('/api/documents/:id/run-script', async (req, res) => {
       res.write(`data: ${JSON.stringify({ log: logLine })}\n\n`);
     });
 
-    // Save final status and complete logs to database
     const finalLogs = allLogs.join('\n');
     const finalStatus = finalLogs.includes('Failed') ? 'failed' : 'passed';
-    await db.run(
-      'UPDATE scripts SET logs = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE document_id = ?',
-      [finalLogs, finalStatus, documentId]
-    );
+    
+    // Save final status and complete logs to database
+    script.logs = finalLogs;
+    script.status = finalStatus;
+    script.updated_at = new Date();
+    await script.save();
+
+    // Log automation execution result to runs history
+    await new TestRun({
+      document_id: documentId,
+      run_type: 'automated',
+      status: finalStatus,
+      passed_count: finalLogs.includes('Failed') ? 2 : 3,
+      failed_count: finalLogs.includes('Failed') ? 1 : 0
+    }).save();
 
     res.write(`data: ${JSON.stringify({ status: finalStatus, done: true })}\n\n`);
     res.end();
@@ -377,8 +309,85 @@ app.get('/api/documents/:id/run-script', async (req, res) => {
 // Delete a document
 app.delete('/api/documents/:id', async (req, res) => {
   try {
-    await db.run('DELETE FROM documents WHERE id = ?', [req.params.id]);
+    await Document.findByIdAndDelete(req.params.id);
+    await TestCase.deleteMany({ document_id: req.params.id });
+    await Script.deleteMany({ document_id: req.params.id });
+    await Defect.deleteMany({ document_id: req.params.id });
+    await TestRun.deleteMany({ document_id: req.params.id });
     res.json({ message: 'Document and all associated data deleted' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create a new defect ticket
+app.post('/api/defects', async (req, res) => {
+  const { document_id, test_case_id, title, description, severity } = req.body;
+  if (!document_id || !test_case_id || !title || !description) {
+    return res.status(400).json({ error: 'document_id, test_case_id, title, and description are required' });
+  }
+  try {
+    const result = await new Defect({
+      document_id, test_case_id, title, description, severity: severity || 'Medium', status: 'Open'
+    }).save();
+    res.json({ message: 'Defect logged successfully', id: result.id });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update defect status (resolve bug)
+app.put('/api/defects/:id', async (req, res) => {
+  const { status } = req.body;
+  if (!status) return res.status(400).json({ error: 'Status is required' });
+  try {
+    await Defect.findByIdAndUpdate(req.params.id, { status });
+    res.json({ message: 'Defect status updated successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Submit a new manual or automated test run execution log
+app.post('/api/test-runs', async (req, res) => {
+  const { document_id, run_type, status, passed_count, failed_count } = req.body;
+  if (!document_id || !run_type || !status) {
+    return res.status(400).json({ error: 'document_id, run_type, and status are required' });
+  }
+  try {
+    const result = await new TestRun({
+      document_id, run_type, status, passed_count: passed_count || 0, failed_count: failed_count || 0
+    }).save();
+    res.json({ message: 'Test execution run saved', id: result.id });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Compile dynamic automation scripts based on framework parameter
+app.get('/api/documents/:id/compile-framework', async (req, res) => {
+  const { framework } = req.query; // 'playwright' | 'cypress' | 'selenium'
+  try {
+    const doc = await Document.findById(req.params.id);
+    if (!doc) return res.status(404).json({ error: 'Document not found' });
+
+    const testCases = await TestCase.find({ document_id: req.params.id });
+    
+    let scriptCode = '';
+    let language = '';
+
+    if (framework === 'cypress') {
+      scriptCode = generateCypressScript(doc.filename, testCases);
+      language = 'JavaScript (Cypress)';
+    } else if (framework === 'selenium') {
+      scriptCode = generateSeleniumScript(doc.filename, testCases);
+      language = 'Java (Selenium JUnit)';
+    } else {
+      scriptCode = generatePlaywrightScript(doc.filename, testCases);
+      language = 'JavaScript (Playwright)';
+    }
+
+    res.json({ scriptCode, language, framework });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
