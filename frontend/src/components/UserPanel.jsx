@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Upload, FileText, CheckCircle2, AlertCircle, 
-  Trash2, Send, HelpCircle, FileCode, Check 
+  Trash2, Send, HelpCircle, FileCode, Check, RefreshCw 
 } from 'lucide-react';
 import { API_BASE_URL } from '../config.js';
 
