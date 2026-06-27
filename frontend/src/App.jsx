@@ -29,6 +29,7 @@ export default function App() {
   };
 
   const fetchDocumentDetails = async (docId) => {
+    if (!docId) return;
     try {
       const res = await fetch(`${API_BASE_URL}/api/documents/${docId}`);
       if (res.ok) {
@@ -49,7 +50,15 @@ export default function App() {
   }, [selectedDoc?.id]);
 
   const handleSelectDoc = (docId) => {
-    fetchDocumentDetails(docId);
+    if (docId === null) {
+      setSelectedDoc(null);
+      setTestCases([]);
+      setScript(null);
+      setDefects([]);
+      setTestRuns([]);
+    } else {
+      fetchDocumentDetails(docId);
+    }
   };
 
   return (

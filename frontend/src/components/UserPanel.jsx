@@ -56,6 +56,71 @@ export default function UserPanel({
   const [defectDesc, setDefectDesc] = useState('');
   const [defectSeverity, setDefectSeverity] = useState('Medium');
 
+  // Approval flow states & handlers
+  const [isApproving, setIsApproving] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [isIgnoring, setIsIgnoring] = useState(false);
+
+  const handleApproveDocument = async () => {
+    if (!selectedDoc) return;
+    setIsApproving(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/documents/${selectedDoc.id}/approve`, {
+        method: 'POST'
+      });
+      if (res.ok) {
+        onUploadSuccess(); // Refresh documents queue
+        await fetchDocDetails(selectedDoc.id); // Refresh current document detail
+        setActiveWorkspaceTab('script'); // Switch to Automation Studio
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Approval failed.');
+      }
+    } catch (err) {
+      console.error('Approve action failed:', err);
+    } finally {
+      setIsApproving(false);
+    }
+  };
+
+  const handleRejectDocument = async () => {
+    if (!selectedDoc) return;
+    setIsRegenerating(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/documents/${selectedDoc.id}/reject`, {
+        method: 'POST'
+      });
+      if (res.ok) {
+        await fetchDocDetails(selectedDoc.id); // Refresh cases to show new draft cases
+      } else {
+        alert('Failed to regenerate test cases.');
+      }
+    } catch (err) {
+      console.error('Reject action failed:', err);
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
+
+  const handleIgnoreDocument = async () => {
+    if (!selectedDoc) return;
+    if (!confirm('Are you sure you want to ignore this upload? The document and draft test cases will be deleted.')) return;
+    setIsIgnoring(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/documents/${selectedDoc.id}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        onUploadSuccess(); // Refresh documents queue
+        onSelectDoc(null); // Clear selected document
+      }
+    } catch (err) {
+      console.error('Failed to ignore document:', err);
+    } finally {
+      setIsIgnoring(false);
+    }
+  };
+
   const terminalEndRef = useRef(null);
 
   // Auto-scroll terminal
@@ -555,38 +620,117 @@ export default function UserPanel({
               )}
             </div>
 
+            {/* Approval and Regeneration Review Banner */}
+            {selectedDoc.status === 'pending_approval' && (
+              <div className="glass-card" style={{ 
+                padding: '1.25rem', 
+                marginBottom: '1.5rem', 
+                borderColor: 'var(--warning)', 
+                background: 'rgba(245, 158, 11, 0.03)',
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: '1rem' 
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <AlertTriangle size={20} style={{ color: 'var(--warning)' }} />
+                  <div>
+                    <h4 style={{ fontSize: '0.95rem', color: '#fff', fontWeight: 600 }}>Draft Verification Cases Generated</h4>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                      Review the generated manual test cases below. Choose to Approve & Compile them, Regenerate a new version, or Ignore this upload.
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  <button 
+                    className="btn-primary" 
+                    onClick={handleApproveDocument}
+                    disabled={isApproving || isRegenerating || isIgnoring}
+                    style={{ 
+                      background: 'linear-gradient(135deg, var(--success), #059669)', 
+                      padding: '0.5rem 1.25rem', 
+                      fontSize: '0.8rem',
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '0.45rem',
+                      cursor: 'pointer' 
+                    }}
+                  >
+                    {isApproving ? <RefreshCw className="spin" size={14} /> : <Check size={14} />}
+                    Approve & Compile Suite
+                  </button>
+
+                  <button 
+                    className="btn-secondary" 
+                    onClick={handleRejectDocument}
+                    disabled={isApproving || isRegenerating || isIgnoring}
+                    style={{ 
+                      border: '1px solid var(--error)', 
+                      color: 'var(--error)', 
+                      padding: '0.5rem 1.25rem', 
+                      fontSize: '0.8rem',
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '0.45rem',
+                      cursor: 'pointer' 
+                    }}
+                  >
+                    {isRegenerating ? <RefreshCw className="spin" size={14} /> : <X size={14} />}
+                    Reject & Regenerate
+                  </button>
+
+                  <button 
+                    className="btn-secondary" 
+                    onClick={handleIgnoreDocument}
+                    disabled={isApproving || isRegenerating || isIgnoring}
+                    style={{ 
+                      padding: '0.5rem 1.25rem', 
+                      fontSize: '0.8rem',
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '0.45rem',
+                      cursor: 'pointer' 
+                    }}
+                  >
+                    {isIgnoring ? <RefreshCw className="spin" size={14} /> : <Trash2 size={14} />}
+                    Ignore & Back
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Navigation Tabs covering Manual and Automated suites */}
-            <div className="tabs-header">
-              <button 
-                className={`tab-btn ${activeWorkspaceTab === 'cases' ? 'active' : ''}`}
-                onClick={() => setActiveWorkspaceTab('cases')}
-              >
-                <FileCode size={16} /> Specification Review
-              </button>
-              
-              <button 
-                className={`tab-btn ${activeWorkspaceTab === 'manual' ? 'active' : ''}`}
-                onClick={() => setActiveWorkspaceTab('manual')}
-              >
-                <CheckSquare size={16} /> Manual Worksheet
-              </button>
-              
-              {selectedDoc.status === 'approved' && (
+            {selectedDoc.status === 'approved' && (
+              <div className="tabs-header">
+                <button 
+                  className={`tab-btn ${activeWorkspaceTab === 'cases' ? 'active' : ''}`}
+                  onClick={() => setActiveWorkspaceTab('cases')}
+                >
+                  <FileCode size={16} /> Specification Review
+                </button>
+                
+                <button 
+                  className={`tab-btn ${activeWorkspaceTab === 'manual' ? 'active' : ''}`}
+                  onClick={() => setActiveWorkspaceTab('manual')}
+                >
+                  <CheckSquare size={16} /> Manual Worksheet
+                </button>
+                
                 <button 
                   className={`tab-btn ${activeWorkspaceTab === 'script' ? 'active' : ''}`}
                   onClick={() => setActiveWorkspaceTab('script')}
                 >
                   <Terminal size={16} /> Automation Studio
                 </button>
-              )}
 
-              <button 
-                className={`tab-btn ${activeWorkspaceTab === 'traceability' ? 'active' : ''}`}
-                onClick={() => setActiveWorkspaceTab('traceability')}
-              >
-                <Layers size={16} /> Traceability Hub
-              </button>
-            </div>
+                <button 
+                  className={`tab-btn ${activeWorkspaceTab === 'traceability' ? 'active' : ''}`}
+                  onClick={() => setActiveWorkspaceTab('traceability')}
+                >
+                  <Layers size={16} /> Traceability Hub
+                </button>
+              </div>
+            )}
 
             {/* Tab 1: Test Cases Editor view */}
             {activeWorkspaceTab === 'cases' && (
@@ -599,82 +743,90 @@ export default function UserPanel({
                 </div>
 
                 <div className="testcase-grid">
-                  {testCases.map((tc) => (
-                    <div key={tc.id} className="testcase-card">
-                      {editingId === tc.id ? (
-                        /* Editing view */
-                        <div className="testcase-edit-form">
-                          <div className="form-group">
-                            <label className="form-label">Test Case Section</label>
-                            <input 
-                              type="text" 
-                              className="form-input" 
-                              value={editSection}
-                              onChange={(e) => setEditSection(e.target.value)}
-                            />
-                          </div>
-                          <div className="form-group">
-                            <label className="form-label">Test Case Title</label>
-                            <input 
-                              type="text" 
-                              className="form-input" 
-                              value={editTitle}
-                              onChange={(e) => setEditTitle(e.target.value)}
-                            />
-                          </div>
-                          <div className="form-group">
-                            <label className="form-label">Execution Steps</label>
-                            <textarea 
-                              className="form-textarea" 
-                              value={editSteps}
-                              onChange={(e) => setEditSteps(e.target.value)}
-                            />
-                          </div>
-                          <div className="form-group">
-                            <label className="form-label">Expected Outcome</label>
-                            <textarea 
-                              className="form-textarea" 
-                              value={editExpected}
-                              onChange={(e) => setEditExpected(e.target.value)}
-                            />
-                          </div>
-                          <div className="edit-actions">
-                            <button className="nav-btn btn-secondary" onClick={cancelEdit}>Cancel</button>
-                            <button className="nav-btn btn-primary" onClick={() => saveEdit(tc.id)}>
-                              <Save size={14} /> Save Changes
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        /* Normal read view with Edit action */
-                        <div>
-                          <div className="testcase-header">
-                            <span className="testcase-title">TC-{tc.id}: {tc.title}</span>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                              <span className="testcase-section">{tc.section}</span>
-                              <button 
-                                className="btn-secondary" 
-                                style={{ padding: '0.2rem 0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', borderRadius: '4px' }}
-                                onClick={() => startEdit(tc)}
-                              >
-                                <Edit size={12} /> Edit
+                  {isRegenerating ? (
+                    <div style={{ gridColumn: '1 / -1', color: 'var(--text-secondary)', textAlign: 'center', padding: '4rem 1rem' }}>
+                      <RefreshCw className="spin" size={28} style={{ marginBottom: '1.25rem', color: 'var(--warning)', display: 'inline-block' }} />
+                      <h4 style={{ fontSize: '1rem', color: '#fff', fontWeight: 600 }}>Regenerating Test Cases...</h4>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>Updating draft requirements from parser engine</p>
+                    </div>
+                  ) : (
+                    testCases.map((tc) => (
+                      <div key={tc.id} className="testcase-card">
+                        {editingId === tc.id ? (
+                          /* Editing view */
+                          <div className="testcase-edit-form">
+                            <div className="form-group">
+                              <label className="form-label">Test Case Section</label>
+                              <input 
+                                type="text" 
+                                className="form-input" 
+                                value={editSection}
+                                onChange={(e) => setEditSection(e.target.value)}
+                              />
+                            </div>
+                            <div className="form-group">
+                              <label className="form-label">Test Case Title</label>
+                              <input 
+                                type="text" 
+                                className="form-input" 
+                                value={editTitle}
+                                onChange={(e) => setEditTitle(e.target.value)}
+                              />
+                            </div>
+                            <div className="form-group">
+                              <label className="form-label">Execution Steps</label>
+                              <textarea 
+                                className="form-textarea" 
+                                value={editSteps}
+                                onChange={(e) => setEditSteps(e.target.value)}
+                              />
+                            </div>
+                            <div className="form-group">
+                              <label className="form-label">Expected Outcome</label>
+                              <textarea 
+                                className="form-textarea" 
+                                value={editExpected}
+                                onChange={(e) => setEditExpected(e.target.value)}
+                              />
+                            </div>
+                            <div className="edit-actions">
+                              <button className="nav-btn btn-secondary" onClick={cancelEdit}>Cancel</button>
+                              <button className="nav-btn btn-primary" onClick={() => saveEdit(tc.id)}>
+                                <Save size={14} /> Save Changes
                               </button>
                             </div>
                           </div>
-                          <div className="testcase-body">
-                            <div className="tc-block">
-                              <span className="tc-label">Execution Steps</span>
-                              <div className="tc-value">{tc.steps}</div>
+                        ) : (
+                          /* Normal read view with Edit action */
+                          <div>
+                            <div className="testcase-header">
+                              <span className="testcase-title">TC-{tc.id}: {tc.title}</span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <span className="testcase-section">{tc.section}</span>
+                                <button 
+                                  className="btn-secondary" 
+                                  style={{ padding: '0.2rem 0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', borderRadius: '4px' }}
+                                  onClick={() => startEdit(tc)}
+                                >
+                                  <Edit size={12} /> Edit
+                                </button>
+                              </div>
                             </div>
-                            <div className="tc-block">
-                              <span className="tc-label">Expected Result</span>
-                              <div className="tc-value" style={{ color: 'var(--primary-light)' }}>{tc.expected}</div>
+                            <div className="testcase-body">
+                              <div className="tc-block">
+                                <span className="tc-label">Execution Steps</span>
+                                <div className="tc-value">{tc.steps}</div>
+                              </div>
+                              <div className="tc-block">
+                                <span className="tc-label">Expected Result</span>
+                                <div className="tc-value" style={{ color: 'var(--primary-light)' }}>{tc.expected}</div>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                        )}
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             )}

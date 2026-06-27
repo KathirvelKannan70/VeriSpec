@@ -180,48 +180,27 @@ app.post('/api/documents/upload', upload.single('srsFile'), async (req, res) => 
       content = req.body.textInput;
     }
 
-    // Save document to MongoDB
-    const doc = await new Document({ filename, content, status: 'processing' }).save();
+    // Save document to MongoDB as pending_approval
+    const doc = await new Document({ filename, content, status: 'pending_approval' }).save();
     const documentId = doc._id;
 
     // Generate Test Cases (Gemini/Mock parsing)
     const testCases = await generateTestCasesFromSRS(filename, content);
 
-    // Save test cases to database as approved
-    const savedTestCases = [];
+    // Save test cases to database as draft
     for (const tc of testCases) {
-      const savedTc = await new TestCase({
+      await new TestCase({
         document_id: documentId,
         section: tc.section,
         title: tc.title,
         steps: tc.steps,
         expected: tc.expected,
-        status: 'approved'
+        status: 'draft'
       }).save();
-      savedTestCases.push(savedTc);
     }
 
-    // Generate Playwright test script immediately
-    const scriptCode = generatePlaywrightScript(filename, savedTestCases);
-
-    // Write to a local test file for simulation run support
-    const testFilePath = path.join(testDir, `document_${doc.id}.spec.js`);
-    fs.writeFileSync(testFilePath, scriptCode, 'utf8');
-
-    // Save script reference in DB
-    await new Script({
-      document_id: doc._id,
-      script_code: scriptCode,
-      status: 'approved',
-      updated_at: new Date()
-    }).save();
-
-    // Update document status to approved
-    doc.status = 'approved';
-    await doc.save();
-
     res.json({
-      message: 'SRS parsed, test cases and automation script generated successfully',
+      message: 'SRS parsed and test cases generated successfully in draft status',
       documentId
     });
   } catch (error) {
@@ -250,6 +229,9 @@ app.post('/api/documents/:id/approve', async (req, res) => {
   try {
     const doc = await Document.findById(req.params.id);
     if (!doc) return res.status(404).json({ error: 'Document not found' });
+
+    // Also update all test cases status to approved
+    await TestCase.updateMany({ document_id: req.params.id }, { status: 'approved' });
 
     const testCases = await TestCase.find({ document_id: req.params.id });
     
@@ -280,11 +262,36 @@ app.post('/api/documents/:id/approve', async (req, res) => {
   }
 });
 
-// Reject a document
+// Reject a document: clears draft cases, generates new ones, and returns them
 app.post('/api/documents/:id/reject', async (req, res) => {
   try {
-    await Document.findByIdAndUpdate(req.params.id, { status: 'rejected' });
-    res.json({ message: 'SRS document rejected' });
+    const doc = await Document.findById(req.params.id);
+    if (!doc) return res.status(404).json({ error: 'Document not found' });
+
+    // Delete existing test cases
+    await TestCase.deleteMany({ document_id: req.params.id });
+
+    // Generate fresh test cases
+    const testCases = await generateTestCasesFromSRS(doc.filename, doc.content);
+
+    // Save new test cases as draft
+    const savedTestCases = [];
+    for (const tc of testCases) {
+      const savedTc = await new TestCase({
+        document_id: doc._id,
+        section: tc.section,
+        title: tc.title,
+        steps: tc.steps,
+        expected: tc.expected,
+        status: 'draft'
+      }).save();
+      savedTestCases.push(savedTc);
+    }
+
+    res.json({
+      message: 'SRS test cases regenerated successfully',
+      testCases: savedTestCases
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

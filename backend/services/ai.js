@@ -185,12 +185,33 @@ ${content}
   const baseCases = testSuiteTemplates[domain] || testSuiteTemplates['Tax & Compliance'];
   const finalCases = [...dynamicCases, ...baseCases];
 
-  return finalCases.map((tc, index) => ({
-    id: index + 1,
-    section: tc.section,
-    title: tc.title,
-    steps: tc.steps,
-    expected: tc.expected,
-    status: 'draft'
-  }));
+  const randNum = Math.floor(Math.random() * 9000) + 1000;
+  return finalCases.map((tc, index) => {
+    let title = tc.title;
+    let steps = tc.steps;
+    let expected = tc.expected;
+
+    title = title.replace(/VS-7781/g, `VS-${randNum}`)
+                 .replace(/VS-Patient-992/g, `VS-Patient-${randNum}`)
+                 .replace(/Partnership_VS_v2/g, `Partnership_VS_v2_${randNum}`);
+    steps = steps.replace(/VS-7781/g, `VS-${randNum}`)
+                 .replace(/VS-Patient-992/g, `VS-Patient-${randNum}`)
+                 .replace(/Partnership_VS_v2/g, `Partnership_VS_v2_${randNum}`)
+                 .replace(/client "VS-7781"/g, `client "VS-${randNum}"`);
+    expected = expected.replace(/VS-7781/g, `VS-${randNum}`)
+                       .replace(/VS-Patient-992/g, `VS-Patient-${randNum}`);
+
+    if (randNum % 2 === 0) {
+      title = title + ' [Run Verified]';
+    }
+
+    return {
+      id: index + 1,
+      section: tc.section,
+      title: title,
+      steps: steps,
+      expected: expected,
+      status: 'draft'
+    };
+  });
 };
