@@ -121,7 +121,7 @@ export const initDB = async () => {
   const docExists = await Document.findOne();
   if (!docExists) {
     const filename = 'sample.txt';
-    const content = `SRS SPECIFICATION: WOLTERS KLUWER TAX & COMPLIANCE SYSTEM\n\n1. The system shall enforce login with Multi-Factor Authentication (MFA) to protect tax records.\n2. The ingestion module shall parse IRS Form 1040 PDF documents and execute schema validations.\n3. The system shall log all tax ledger modifications to an immutable audit ledger.`;
+    const content = `SRS SPECIFICATION: VERISPEC TAX & COMPLIANCE SYSTEM\n\n1. The system shall enforce login with Multi-Factor Authentication (MFA) to protect tax records.\n2. The ingestion module shall parse IRS Form 1040 PDF documents and execute schema validations.\n3. The system shall log all tax ledger modifications to an immutable audit ledger.`;
     
     const doc = await new Document({ filename, content, status: 'approved' }).save();
     const documentId = doc._id;
@@ -131,8 +131,8 @@ export const initDB = async () => {
     const tc1 = await new TestCase({
       document_id: documentId,
       section: 'Authentication & Access Control',
-      title: 'Verify Wolters Kluwer Secure Login with MFA',
-      steps: '1. Navigate to the WK Tax Portal login page.\n2. Enter valid credentials (username: admin, password: admin123).\n3. Click Login.\n4. Input the 6-digit MFA verification code.\n5. Click Verify.',
+      title: 'Verify VeriSpec Secure Login with MFA',
+      steps: '1. Navigate to the VeriSpec Tax Portal login page.\n2. Enter valid credentials (username: admin, password: admin123).\n3. Click Login.\n4. Input the 6-digit MFA verification code.\n5. Click Verify.',
       expected: 'User is successfully redirected to the Compliance Dashboard. Session token is stored securely.',
       status: 'approved'
     }).save();
@@ -150,7 +150,7 @@ export const initDB = async () => {
       document_id: documentId,
       section: 'Audit Logs',
       title: 'Verify Audit Trail Integrity for Tax adjustments',
-      steps: '1. Navigate to the Client Tax Ledger.\n2. Edit deduction value for client "WK-7781" to $15,000.\n3. Click Save.\n4. Open Audit Log history.\n5. Inspect the newly created log entry.',
+      steps: '1. Navigate to the Client Tax Ledger.\n2. Edit deduction value for client "VS-7781" to $15,000.\n3. Click Save.\n4. Open Audit Log history.\n5. Inspect the newly created log entry.',
       expected: 'Audit log registers change containing: timestamp, user (admin), changed property (deduction), old value, and new value.',
       status: 'approved'
     }).save();
@@ -162,14 +162,14 @@ export const initDB = async () => {
 
 /**
  * Playwright Automated QA Suite for: sample.txt
- * Generated automatically by Wolters Kluwer VeriSpec.
+ * Generated automatically by VeriSpec.
  */
 
 test.describe('Compliance Verification Suite - sample.txt', () => {
 
-  test('Test 1: Verify Wolters Kluwer Secure Login with MFA', async ({ page }) => {
-    console.log('Starting Test Execution: Verify Wolters Kluwer Secure Login with MFA');
-    await page.goto('https://compliance-qa.wolterskluwer.com/dashboard');
+  test('Test 1: Verify VeriSpec Secure Login with MFA', async ({ page }) => {
+    console.log('Starting Test Execution: Verify VeriSpec Secure Login with MFA');
+    await page.goto('https://compliance-qa.verispec.com/dashboard');
     await page.fill('input[placeholder*="username"]', 'admin');
     await page.click('button[type="submit"]');
     await page.fill('input[placeholder*="mfa"]', '123456');
@@ -177,12 +177,12 @@ test.describe('Compliance Verification Suite - sample.txt', () => {
 
     const headerText = await page.locator('h1.dashboard-header, div.banner-message').textContent();
     expect(headerText).toBeDefined();
-    console.log('Passed Test: Verify Wolters Kluwer Secure Login with MFA');
+    console.log('Passed Test: Verify VeriSpec Secure Login with MFA');
   });
 
   test('Test 2: Verify Automatic Validation of IRS Form 1040 Ingestion', async ({ page }) => {
     console.log('Starting Test Execution: Verify Automatic Validation of IRS Form 1040 Ingestion');
-    await page.goto('https://compliance-qa.wolterskluwer.com/dashboard');
+    await page.goto('https://compliance-qa.verispec.com/dashboard');
     await page.setInputFiles('input[type="file"]', 'test-data/srs_doc.pdf');
     await page.waitForTimeout(500);
 
@@ -193,7 +193,7 @@ test.describe('Compliance Verification Suite - sample.txt', () => {
 
   test('Test 3: Verify Audit Trail Integrity for Tax adjustments', async ({ page }) => {
     console.log('Starting Test Execution: Verify Audit Trail Integrity for Tax adjustments');
-    await page.goto('https://compliance-qa.wolterskluwer.com/dashboard');
+    await page.goto('https://compliance-qa.verispec.com/dashboard');
     await page.fill('input[name="deduction"]', '15000');
     await page.click('button[type="submit"]');
     await page.click('a[href*="audit-log"]');

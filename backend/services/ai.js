@@ -14,7 +14,7 @@ export const generateTestCasesFromSRS = async (filename, content) => {
     try {
       console.log('GEMINI_API_KEY detected. Ingesting requirement spec to Gemini LLM...');
 
-      const prompt = `You are a Senior QA Automation Architect at Wolters Kluwer. 
+      const prompt = `You are a Senior QA Automation Architect at VeriSpec. 
 Analyze the following Software Requirements Specification (SRS) text and compile a comprehensive list of manual verification test cases.
 
 Return your response strictly as a JSON array of objects. Do not include markdown wraps (like \`\`\`json).
@@ -96,8 +96,8 @@ ${content}
     'Tax & Compliance': [
       {
         section: 'Authentication & Access Control',
-        title: 'Verify Wolters Kluwer Secure Login with MFA',
-        steps: '1. Navigate to the WK Tax Portal login page.\n2. Enter valid credentials (username: admin, password: admin123).\n3. Click Login.\n4. Input the 6-digit MFA verification code received via SMS/Email.\n5. Click Verify.',
+        title: 'Verify VeriSpec Secure Login with MFA',
+        steps: '1. Navigate to the VeriSpec Tax Portal login page.\n2. Enter valid credentials (username: admin, password: admin123).\n3. Click Login.\n4. Input the 6-digit MFA verification code received via SMS/Email.\n5. Click Verify.',
         expected: 'User is successfully redirected to the Compliance Dashboard. Session token is stored securely.'
       },
       {
@@ -109,7 +109,7 @@ ${content}
       {
         section: 'Audit Logs',
         title: 'Verify Audit Trail Integrity for Tax adjustments',
-        steps: '1. Navigate to the Client Tax Ledger.\n2. Edit deduction value for client "WK-7781" to $15,000.\n3. Click Save.\n4. Open Audit Log history.\n5. Inspect the newly created log entry.',
+        steps: '1. Navigate to the Client Tax Ledger.\n2. Edit deduction value for client "VS-7781" to $15,000.\n3. Click Save.\n4. Open Audit Log history.\n5. Inspect the newly created log entry.',
         expected: 'Audit log registers change containing: timestamp, user (admin), changed property (deduction), old value, and new value. Log is cryptographically hashed.'
       }
     ],
@@ -123,7 +123,7 @@ ${content}
       {
         section: 'Access Auditing',
         title: 'Verify Non-Authorized Medical Staff Access Prevention',
-        steps: '1. Login as staff member "Nurse-Jane" (restricted role).\n2. Attempt to open patient "WK-Patient-992" medical prescription history via direct URL API.\n3. Submit request.',
+        steps: '1. Login as staff member "Nurse-Jane" (restricted role).\n2. Attempt to open patient "VS-Patient-992" medical prescription history via direct URL API.\n3. Submit request.',
         expected: 'Access is denied (HTTP 403 Forbidden). Incident report is generated in admin alert console.'
       }
     ],
@@ -131,7 +131,7 @@ ${content}
       {
         section: 'Contract Ingestion',
         title: 'Verify AI Clause Extraction from Legal PDF Agreement',
-        steps: '1. Upload agreement document "Partnership_WK_v2.pdf".\n2. Click "Extract Clauses" button.\n3. Review parsed list of Indemnity and Liability clauses.',
+        steps: '1. Upload agreement document "Partnership_VS_v2.pdf".\n2. Click "Extract Clauses" button.\n3. Review parsed list of Indemnity and Liability clauses.',
         expected: 'AI engine highlights exactly 4 liability clauses. Accuracy confidence score > 92% is rendered on panel.'
       },
       {
@@ -152,7 +152,7 @@ ${content}
         section: 'Reporting',
         title: 'Verify PDF Auditor Summary Report Compilation',
         steps: '1. Open Financial Dashboard.\n2. Select Date range (01/01/2026 to 06/30/2026).\n3. Click "Generate Auditor PDF".\n4. Review downloaded PDF format and branding logos.',
-        expected: 'PDF contains Wolters Kluwer corporate headers, table of contents, executive balance sheet, and compliance certificate signature page.'
+        expected: 'PDF contains VeriSpec corporate headers, table of contents, executive balance sheet, and compliance certificate signature page.'
       }
     ]
   };

@@ -17,9 +17,9 @@ export default function App() {
   const [testRuns, setTestRuns] = useState([]);
   
   // Auth state
-  const [token, setToken] = useState(localStorage.getItem('wk_auth_token') || '');
-  const [user, setUser] = useState(localStorage.getItem('wk_username') || '');
-  const [role, setRole] = useState(localStorage.getItem('wk_role') || '');
+  const [token, setToken] = useState(localStorage.getItem('vs_auth_token') || '');
+  const [user, setUser] = useState(localStorage.getItem('vs_username') || '');
+  const [role, setRole] = useState(localStorage.getItem('vs_role') || '');
   
   // Login Modal
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -92,9 +92,9 @@ export default function App() {
         return;
       }
       // Save credentials
-      localStorage.setItem('wk_auth_token', data.token);
-      localStorage.setItem('wk_username', data.username);
-      localStorage.setItem('wk_role', data.role);
+      localStorage.setItem('vs_auth_token', data.token);
+      localStorage.setItem('vs_username', data.username);
+      localStorage.setItem('vs_role', data.role);
       
       setToken(data.token);
       setUser(data.username);
@@ -110,9 +110,9 @@ export default function App() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('wk_auth_token');
-    localStorage.removeItem('wk_username');
-    localStorage.removeItem('wk_role');
+    localStorage.removeItem('vs_auth_token');
+    localStorage.removeItem('vs_username');
+    localStorage.removeItem('vs_role');
     setToken('');
     setUser('');
     setRole('');
@@ -125,7 +125,7 @@ export default function App() {
       <header className="navbar">
         <div className="brand">
           <div className="logo-dot"></div>
-          Wolters Kluwer <span>VeriSpec</span>
+          <span>VeriSpec</span>
         </div>
 
         <div className="nav-links">
@@ -201,7 +201,7 @@ export default function App() {
           <div className="login-modal glass-card">
             <div className="login-header">
               <h2 className="login-title">Admin Authorization</h2>
-              <p className="login-subtitle">Enter Wolters Kluwer administrative credentials</p>
+              <p className="login-subtitle">Enter VeriSpec administrative credentials</p>
             </div>
             
             <form onSubmit={handleLoginSubmit} className="login-body">

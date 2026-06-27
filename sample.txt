@@ -1,5 +1,5 @@
 SYSTEM REQUIREMENTS SPECIFICATION (SRS)
-Project: Wolters Kluwer Tax & Compliance Portal
+Project: VeriSpec Tax & Compliance Portal
 Version: 1.0.0
 Author: QA Engineering Team
 

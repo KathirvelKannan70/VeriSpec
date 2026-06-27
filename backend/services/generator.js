@@ -15,7 +15,7 @@ export const generatePlaywrightScript = (documentName, testCases) => {
 
 /**
  * Playwright Automated QA Suite for: ${documentName}
- * Generated automatically by Wolters Kluwer SRS AI Assistant.
+ * Generated automatically by VeriSpec SRS AI Assistant.
  * Generated At: ${new Date().toISOString()}
  */
 
@@ -43,7 +43,7 @@ test.describe('Compliance Verification Suite - ${documentName}', () => {
       // Inject some mock Playwright operations based on keywords in steps
       const lowerStep = cleanStep.toLowerCase();
       if (lowerStep.includes('navigate') || lowerStep.includes('goto')) {
-        scriptContent += `    await page.goto('https://compliance-qa.wolterskluwer.com/dashboard');\n`;
+        scriptContent += `    await page.goto('https://compliance-qa.verispec.com/dashboard');\n`;
       } else if (lowerStep.includes('enter') || lowerStep.includes('input') || lowerStep.includes('type')) {
         scriptContent += `    await page.fill('input[placeholder*="username"]', 'admin');\n`;
       } else if (lowerStep.includes('click') || lowerStep.includes('submit') || lowerStep.includes('press')) {
@@ -73,14 +73,14 @@ test.describe('Compliance Verification Suite - ${documentName}', () => {
 // Simulate script execution with live terminal logs
 export const simulatePlaywrightExecution = async (scriptCode, callback) => {
   const logs = [
-    `[WK-QA-RUNNER] Initializing Playwright Headless Browser (Chromium)...`,
-    `[WK-QA-RUNNER] Browser launched successfully. PID: ${Math.floor(Math.random() * 9000) + 1000}`,
-    `[WK-QA-RUNNER] Loading test file configuration...`,
-    `[WK-QA-RUNNER] Running 3 test cases...`,
+    `[VS-QA-RUNNER] Initializing Playwright Headless Browser (Chromium)...`,
+    `[VS-QA-RUNNER] Browser launched successfully. PID: ${Math.floor(Math.random() * 9000) + 1000}`,
+    `[VS-QA-RUNNER] Loading test file configuration...`,
+    `[VS-QA-RUNNER] Running 3 test cases...`,
     `------------------------------------------------------------`,
-    `[TEST] Running: Test 1: Verify Wolters Kluwer Secure Login with MFA`,
-    `[STEP] 1. Navigate to the WK Tax Portal login page.`,
-    `[LOG] Page navigated successfully: https://compliance-qa.wolterskluwer.com/login`,
+    `[TEST] Running: Test 1: Verify VeriSpec Secure Login with MFA`,
+    `[STEP] 1. Navigate to the VeriSpec Tax Portal login page.`,
+    `[LOG] Page navigated successfully: https://compliance-qa.verispec.com/login`,
     `[STEP] 2. Enter valid credentials (username: admin, password: admin123).`,
     `[STEP] 3. Click Login.`,
     `[AI Self-Healing] ⚠️ Selector 'button.login-btn-primary' not visible!`,
@@ -108,7 +108,7 @@ export const simulatePlaywrightExecution = async (scriptCode, callback) => {
     `------------------------------------------------------------`,
     `[TEST] Running: Test 3: Verify Audit Trail Integrity for Tax adjustments`,
     `[STEP] 1. Navigate to the Client Tax Ledger.`,
-    `[STEP] 2. Edit deduction value for client "WK-7781" to $15,000.`,
+    `[STEP] 2. Edit deduction value for client "VS-7781" to $15,000.`,
     `[STEP] 3. Click Save.`,
     `[STEP] 4. Open Audit Log history.`,
     `[AI Self-Healing] ⚠️ Selector 'div.log-history-panel' timed out after 500ms.`,
@@ -136,14 +136,14 @@ export const generateCypressScript = (documentName, testCases) => {
   const cleanName = documentName.replace(/[^a-zA-Z0-9]/g, '_');
   let scriptContent = `/**
  * Cypress Automated QA Suite for: ${documentName}
- * Generated automatically by Wolters Kluwer VeriSpec.
+ * Generated automatically by VeriSpec.
  * Generated At: ${new Date().toISOString()}
  */
 
 describe('Compliance Verification Suite - ${cleanName}', () => {
   beforeEach(() => {
     // Navigate to compliance dashboard
-    cy.visit('https://compliance-qa.wolterskluwer.com/dashboard');
+    cy.visit('https://compliance-qa.verispec.com/dashboard');
   });
 `;
 
@@ -180,7 +180,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Selenium Java JUnit Automated QA Suite for: ${documentName}
- * Generated automatically by Wolters Kluwer VeriSpec.
+ * Generated automatically by VeriSpec.
  */
 public class ${cleanClassName} {
     private WebDriver driver;
@@ -207,7 +207,7 @@ public class ${cleanClassName} {
     @DisplayName("${testTitle}")
     public void test_${idx + 1}() {
         System.out.println("Executing Test: " + "${testTitle}");
-        driver.get("https://compliance-qa.wolterskluwer.com/dashboard");
+        driver.get("https://compliance-qa.verispec.com/dashboard");
 
         // Steps:
 `;

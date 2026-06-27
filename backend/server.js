@@ -25,7 +25,7 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const JWT_SECRET = process.env.JWT_SECRET || 'wk-secret-compliance-key-2026';
+const JWT_SECRET = process.env.JWT_SECRET || 'vs-secret-compliance-key-2026';
 
 // Middleware
 app.use(cors());
@@ -35,7 +35,7 @@ app.use(express.json());
 app.get('/', (req, res) => {
   res.json({ 
     status: 'healthy', 
-    service: 'Wolters Kluwer VeriSpec Backend API',
+    service: 'VeriSpec Backend API',
     timestamp: new Date()
   });
 });

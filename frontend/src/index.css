@@ -1,4 +1,4 @@
-/* index.css - Premium QA Automation Platform styling for Wolters Kluwer */
+/* index.css - Premium QA Automation Platform styling for VeriSpec */
 
 :root {
   /* Colors */
@@ -8,7 +8,7 @@
   --bg-card: rgba(31, 41, 55, 0.6);
   --border-color: rgba(75, 85, 99, 0.4);
   
-  --primary-wk: #007f94;
+  --primary-vs: #007f94;
   --primary-light: #00a3be;
   --primary-glow: rgba(0, 163, 190, 0.25);
   
@@ -67,7 +67,7 @@ body {
   border-radius: var(--radius-sm);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--primary-wk);
+  background: var(--primary-vs);
 }
 
 /* Layout Utilities */
@@ -144,7 +144,7 @@ body {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--primary-wk), var(--primary-light));
+  background: linear-gradient(135deg, var(--primary-vs), var(--primary-light));
   color: white;
   border: none;
   box-shadow: var(--shadow-sm);
@@ -800,7 +800,7 @@ body {
 
 .diff-canvas-navbar {
   height: 12px;
-  background: var(--primary-wk);
+  background: var(--primary-vs);
   margin-bottom: 10px;
   border-radius: 2px;
   display: flex;
