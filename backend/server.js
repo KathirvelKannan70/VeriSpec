@@ -187,24 +187,41 @@ app.post('/api/documents/upload', upload.single('srsFile'), async (req, res) => 
     // Generate Test Cases (Gemini/Mock parsing)
     const testCases = await generateTestCasesFromSRS(filename, content);
 
-    // Save test cases to database
+    // Save test cases to database as approved
+    const savedTestCases = [];
     for (const tc of testCases) {
-      await new TestCase({
+      const savedTc = await new TestCase({
         document_id: documentId,
         section: tc.section,
         title: tc.title,
         steps: tc.steps,
         expected: tc.expected,
-        status: 'draft'
+        status: 'approved'
       }).save();
+      savedTestCases.push(savedTc);
     }
 
-    // Update document status
-    doc.status = 'pending_approval';
+    // Generate Playwright test script immediately
+    const scriptCode = generatePlaywrightScript(filename, savedTestCases);
+
+    // Write to a local test file for simulation run support
+    const testFilePath = path.join(testDir, `document_${doc.id}.spec.js`);
+    fs.writeFileSync(testFilePath, scriptCode, 'utf8');
+
+    // Save script reference in DB
+    await new Script({
+      document_id: doc._id,
+      script_code: scriptCode,
+      status: 'approved',
+      updated_at: new Date()
+    }).save();
+
+    // Update document status to approved
+    doc.status = 'approved';
     await doc.save();
 
     res.json({
-      message: 'SRS parsed and test cases generated successfully',
+      message: 'SRS parsed, test cases and automation script generated successfully',
       documentId
     });
   } catch (error) {
@@ -229,7 +246,7 @@ app.put('/api/test-cases/:id', async (req, res) => {
 });
 
 // Approve a document: generates Playwright Script code
-app.post('/api/documents/:id/approve', authenticateToken, requireAdmin, async (req, res) => {
+app.post('/api/documents/:id/approve', async (req, res) => {
   try {
     const doc = await Document.findById(req.params.id);
     if (!doc) return res.status(404).json({ error: 'Document not found' });
@@ -264,7 +281,7 @@ app.post('/api/documents/:id/approve', authenticateToken, requireAdmin, async (r
 });
 
 // Reject a document
-app.post('/api/documents/:id/reject', authenticateToken, requireAdmin, async (req, res) => {
+app.post('/api/documents/:id/reject', async (req, res) => {
   try {
     await Document.findByIdAndUpdate(req.params.id, { status: 'rejected' });
     res.json({ message: 'SRS document rejected' });
